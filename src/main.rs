@@ -1,3 +1,5 @@
+extern crate walkdir;
+
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -23,13 +25,33 @@ pub fn traverse() -> Result<(),std::io::Error> {
 
     let mut file = File::create("c.txt")?;
 
-    for entry in WalkDir::new(directory).into_iter().filter_map(|e| e.ok()) {
+    let mut total_size: u64 = 0;
+
+    for entry in WalkDir::new(directory).into_iter() {
+        match entry {
+            Err(err) => {
+                println!("Error: {}", err);
+            },
+            Ok(entry) => {
+                match fs::metadata(entry.path()) {
+                    Err(err) => {
+                        println!("Error: {}", err);
+                    },
+                    Ok(data) => {
+                        let line = format!("path: \"{}\", size: {}\n", entry.path().display(), data.len());
+                        file.write_all(line.as_bytes())?;
+                        total_size += data.len()
+                    }
+                }
+
+
+            }
+        }
         //println!("path: \"{}\", size: {}", entry.path().display(), fs::metadata(entry.path()).unwrap().len());
-        let line = format!("path: \"{}\", size: {}\n", entry.path().display(), fs::metadata(entry.path())?.len());
-        file.write_all(line.as_bytes())?;
     }
+    write!(file, "Total size: {}", total_size)?;
     Ok(())
-} 
+}
 
 /*pub fn traverse_folder<P>(path: P) -> Result<Vec<PathBuf>, std::io::Error>
     where P: AsRef<Path> {
